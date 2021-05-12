@@ -1,0 +1,28 @@
+val nb_sow = Val[Int]
+val nb_S  = Val[Int]
+val nb_cp  = Val[Int]
+val nb_in  = Val[Int]
+val nb_ip  = Val[Int]
+val seed = Val[Long]
+
+
+
+val gama = 
+  GAMATask(workDirectory / "aherdoms.gaml", "Exp", finalStep =2928, seed = seed) set (
+    resources += (workDirectory / "includes"),
+    inputs += (nb_sow mapped "nb_sow"),
+    outputs += ((nb_S mapped "nb_S"),(nb_cp mapped "nb_CP"),(nb_in mapped "nb_IN"),(nb_ip mapped "nb_IP")),
+    
+  )
+
+// Explore and replicate the model
+DirectSampling(
+  evaluation =
+    Replication(
+      evaluation = gama, 
+      seed = seed,
+      sample = 10, 
+      aggregation = Seq(nb_S aggregate average,nb_ip aggregate average,nb_in aggregate average,nb_cp aggregate average))
+       hook(workDirectory / "result.csv"),
+  sampling = nb_sow in (5 to 5 by 1)
+) 

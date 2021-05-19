@@ -1,5 +1,5 @@
 /**
-* Name: aherdoms
+* Name: aHerdv2
 * Based on the internal empty template. 
 * Author: caohien04
 * Tags: 
@@ -9,13 +9,12 @@
 model aherdoms
 
 /* Insert your model definition here */
-
 global {
 	file myRoad <- file("includes/Thaiha_line.shp");
 	file myRoomS <- file("includes/Thaiha_S.shp");
 	file myRoomPW <- file("includes/Thaiha_PW.shp");
 	file myRoomF <- file("includes/Thaiha_F.shp");
-	int nb_sow <- 5 update: 5;
+	int nb_sow <-100;
 	geometry shape <- envelope(myRoad);
 	geometry building <- envelope(myRoomS);
 	float step <- 1 #h;
@@ -41,27 +40,27 @@ global {
 		create roomS from: myRoomS;
 		create roomPW from: myRoomPW;
 		create roomF from: myRoomF;
-		geometry room <- one_of(roomS);
 		ask nb_sow among pig {}
 		create pig number:nb_sow {
-			location <- any_location_in(room);
+			location <- any_location_in(one_of(roomS));
 			age <- 172; // 25 ngày bú sữa mẹ + 147 ngày nuôi lớn
 			is_sow <- true;		
 		}
 		create pig number:1 {
-			location <- any_location_in(room);
+			location <- any_location_in(one_of(roomPW));
 			age <- 25; // 25 ngày bú sữa mẹ + 147 ngày nuôi lớn
 			is_S <- false;
 			is_IN <- true;
+			room <- 1;
 		}
 		create pig number:nb_sow * 10 {
-			location <- any_location_in(one_of(roomS));
+			location <- any_location_in(one_of(roomPW));
 			age <- 25;
 			is_sow <- false;
+			room <- 1;
 		}
 		
 	}
-	
 	
 	reflex add_pigs when: mod(cycle, 24) = 0 and mod(int(cycle/24) - 122, 147) = 0 { // 122 = 5 ngày lên giống + (115 + 2) ngày mang thai 
 		create pig number:nb_sow * 10 {
@@ -69,7 +68,7 @@ global {
 			location <- any_location_in(one_of(roomS));	
 		}	
 	}
-	reflex pause when: cycle = 24*122 or cycle = 24 * 147 or cycle = 24 * 154 {
+	reflex pause when:  cycle = 24 * 147 or cycle = 24 * 154 {
 		do pause;
 	}
 }
@@ -109,19 +108,41 @@ species pig skills:[moving]{
 	bool is_IN <- false;
 	bool is_IP <- false;
 	bool is_CP <- false;
-	float speed  <- 0.3 update: rnd(3)/10 #m/#h;
+	int room <- 0;
+//	float speed  <- 0.3 update: rnd(3)/10 #m/#h;
 	aspect circle {
 		draw circle((int(age/60)+1)/4) color: is_S ? #green : (is_IN ? #brown : (is_IP ? #red : #orange));
 	}
 	reflex move{
-		do wander bounds:one_of(roomS);
+		if room = 0 {
+			speed  <- rnd(3)/10/3 #m/#h;
+			do wander bounds:one_of(roomS);
+		}
+		if room = 1 {
+			speed  <- rnd(3)/10 #m/#h;
+			do wander bounds:one_of(roomPW);
+		}
+		if room = 2 {
+			speed  <- rnd(3)/10/3 #m/#h;
+			do wander bounds:one_of(roomF);
+		}
 	}
 	reflex growth {
 		if mod(cycle, 24) = 0 {
 			age <- age + 1;
 		}	
 	}
-	reflex finish when: (is_sow and age = 327) or (is_sow = false and age = 180) {
+	reflex relocate {
+		if is_sow = false and age = 25 {
+			room <- 1;
+			location <- any_location_in(one_of(roomPW));
+		}
+		if is_sow = false and age = 172 {
+			room <- 2;
+			location <- any_location_in(one_of(roomF));
+		}
+	}
+	reflex finish when: (is_sow and age = 327) or (is_sow = false and age = 180){
 		if is_S {
 			nb_S_o <- nb_S_o + 1;
 		}
@@ -139,7 +160,8 @@ species pig skills:[moving]{
 	reflex prepare when: mod(cycle, 24) = 0 and nb_sow > 0 and is_sow = false and age = 172 {
 		is_sow <- true;
 		nb_sow <- nb_sow - 1;
-		write "Hello " + nb_sow;
+		room <- 0;
+		location <- any_location_in(one_of(roomS));
 	}
 	reflex infect when: is_S = false{
 		ask pig at_distance 1 #m {
@@ -181,11 +203,10 @@ species pig skills:[moving]{
 experiment Exp type: gui {
 	parameter "Number of sows at init" var: nb_sow min: 1 max: 300;
 	output {
-			monitor "nb_S" value: nb_S;
+		monitor "nb_S" value: nb_S;
 			monitor "nb_IN" value: nb_IN;
 			monitor "nb_IP" value: nb_IP;
 			monitor "nb_CP" value: nb_CP;
 		
 	}
-	
 }

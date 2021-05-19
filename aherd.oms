@@ -8,7 +8,7 @@ val seed = Val[Long]
 
 
 val gama = 
-  GAMATask(workDirectory / "aherdoms.gaml", "Exp", finalStep =2928, seed = seed) set (
+  GAMATask(workDirectory / "aherdoms.gaml", "Exp", finalStep =3528, seed = seed) set (
     resources += (workDirectory / "includes"),
     inputs += (nb_sow mapped "nb_sow"),
     outputs += ((nb_S mapped "nb_S"),(nb_cp mapped "nb_CP"),(nb_in mapped "nb_IN"),(nb_ip mapped "nb_IP")),
